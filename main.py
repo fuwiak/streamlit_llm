@@ -2,10 +2,11 @@ import streamlit as st
 from llama_cpp import Llama
 import time
 import logging
+import fitz  # PyMuPDF
+from io import BytesIO
 
 # Set up logging
 logging.basicConfig(filename='llm_generation.log', level=logging.INFO, format='%(asctime)s - %(message)s')
-
 
 # Initialize the model
 @st.cache_resource
@@ -18,6 +19,14 @@ def load_llama_model(model_path: str, n_ctx: int, n_threads: int, n_gpu_layers: 
         verbose=False,
     )
 
+# Function to read PDF and extract text
+def read_pdf(file):
+    pdf = fitz.open(stream=file.read(), filetype="pdf")
+    text = ""
+    for page_num in range(pdf.page_count):
+        page = pdf[page_num]
+        text += page.get_text()
+    return text
 
 # Sidebar inputs
 st.sidebar.title("🔧 Настройки модели")
@@ -29,6 +38,13 @@ n_threads = st.sidebar.slider("Количество потоков CPU (n_thread
 n_gpu_layers = st.sidebar.slider("Количество слоев для GPU (n_gpu_layers)", min_value=0, max_value=24, value=0)
 temperature = st.sidebar.slider("Температура (temperature)", min_value=0.0, max_value=1.0, value=0.7)
 max_tokens = st.sidebar.slider("Максимальное количество токенов (max_tokens)", min_value=1, max_value=2048, value=1024)
+
+# PDF upload and text extraction in sidebar
+uploaded_file = st.sidebar.file_uploader("Загрузите PDF файл", type=["pdf"])
+pdf_text = ""
+if uploaded_file is not None:
+    pdf_text = read_pdf(uploaded_file)
+    st.sidebar.text_area("Текст из PDF", pdf_text, height=200)
 
 # Load the model
 llm = load_llama_model(model_path, n_ctx, n_threads, n_gpu_layers)
@@ -71,7 +87,7 @@ if st.button("🔮 Сгенерировать ответ"):
             logging.info(f"User Prompt: {user_prompt}")
             logging.info(f"Model Path: {model_path}")
             logging.info(
-                f"n_ctx: {n_ctx}, n_threads: {n_threads}, n_gpu_layers: {n_gpu_layers}, temperature: {temperature}, max_tokens: {max_tokens}")
+                f"n_ctx: {n_ctx}, n_threads: n_threads, n_gpu_layers: {n_gpu_layers}, temperature: {temperature}, max_tokens: {max_tokens}")
             logging.info(f"Time elapsed: {elapsed_time:.2f} seconds")
             logging.info(f"Response: {response}")
 
@@ -94,4 +110,3 @@ if st.button("🔮 Сгенерировать ответ"):
             ### Логи процесса:
             В процессе работы модели ведется логирование всех ключевых параметров и сгенерированных ответов для дальнейшего анализа и улучшения модели.
             """)
-
