@@ -8,6 +8,7 @@ from io import BytesIO
 # Set up logging
 logging.basicConfig(filename='llm_generation.log', level=logging.INFO, format='%(asctime)s - %(message)s')
 
+
 # Initialize the model
 @st.cache_resource
 def load_llama_model(model_path: str, n_ctx: int, n_threads: int, n_gpu_layers: int) -> Llama:
@@ -19,6 +20,7 @@ def load_llama_model(model_path: str, n_ctx: int, n_threads: int, n_gpu_layers: 
         verbose=False,
     )
 
+
 # Function to read PDF and extract text
 def read_pdf(file):
     pdf = fitz.open(stream=file.read(), filetype="pdf")
@@ -27,6 +29,7 @@ def read_pdf(file):
         page = pdf[page_num]
         text += page.get_text()
     return text
+
 
 # Sidebar inputs
 st.sidebar.title("🔧 Настройки модели")
@@ -66,12 +69,30 @@ if st.button("🔮 Сгенерировать ответ"):
     else:
         with st.spinner("Генерация ответа..."):
             start_time = time.time()
+            elapsed_time_placeholder = st.empty()
             prompt = f"\n{query}\n{user_prompt}\n"
+
+
+            # Function to update the elapsed time
+            def update_elapsed_time():
+                while True:
+                    elapsed_time = time.time() - start_time
+                    elapsed_time_placeholder.text(f"Прошло времени: {elapsed_time:.2f} секунд")
+                    time.sleep(0.1)
+
+
+            # Start the elapsed time update in a new thread
+            import threading
+
+            elapsed_time_thread = threading.Thread(target=update_elapsed_time, daemon=True)
+            elapsed_time_thread.start()
+
+            # Generate the output
             output = llm(
                 prompt=prompt,
                 max_tokens=max_tokens,  # Generate up to max_tokens tokens
                 temperature=temperature,  # Set the temperature for generation
-                stop=[""],
+                stop=["<|end|>"],
                 echo=False,  # Whether to echo the prompt
             )
             end_time = time.time()
@@ -87,7 +108,7 @@ if st.button("🔮 Сгенерировать ответ"):
             logging.info(f"User Prompt: {user_prompt}")
             logging.info(f"Model Path: {model_path}")
             logging.info(
-                f"n_ctx: {n_ctx}, n_threads: n_threads, n_gpu_layers: {n_gpu_layers}, temperature: {temperature}, max_tokens: {max_tokens}")
+                f"n_ctx: {n_ctx}, n_threads: {n_threads}, n_gpu_layers: {n_gpu_layers}, temperature: {temperature}, max_tokens: {max_tokens}")
             logging.info(f"Time elapsed: {elapsed_time:.2f} seconds")
             logging.info(f"Response: {response}")
 
