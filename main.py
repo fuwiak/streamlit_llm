@@ -81,11 +81,11 @@ if st.button("🔮 Сгенерировать ответ"):
                     time.sleep(0.1)
 
 
-            # Start the elapsed time update in a new thread
-            import threading
-
-            elapsed_time_thread = threading.Thread(target=update_elapsed_time, daemon=True)
-            elapsed_time_thread.start()
+            # # Start the elapsed time update in a new thread
+            # import threading
+            #
+            # elapsed_time_thread = threading.Thread(target=update_elapsed_time, daemon=True)
+            # elapsed_time_thread.start()
 
             # Generate the output
             output = llm(
